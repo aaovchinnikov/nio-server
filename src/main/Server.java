@@ -3,9 +3,12 @@ package main;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -27,7 +30,8 @@ public class Server {
 	// TODO Из javadoc-а на accept() не ясно, как будет вызвана операция - блокирующися/синхронным вызовом или нет.
 	// Нужно поставить эксперимент.
 	public void start() throws IOException {
-		AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open();
+		AsynchronousChannelGroup group = AsynchronousChannelGroup.withCachedThreadPool(Executors.newCachedThreadPool(), 2);
+		AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open(group);
 		server.bind(socket);
 		server.accept(attachment, handler);
 		
@@ -52,7 +56,7 @@ public class Server {
 		} catch (TimeoutException e) {
 			e.printStackTrace();
 		}
-		server.close();	
+		group.shutdownNow();
 	}
 	
 }
