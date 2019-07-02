@@ -1,33 +1,58 @@
 package main;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketOption;
-import java.net.SocketOptions;
-import java.net.StandardSocketOptions;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousServerSocketChannel;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Server {
-	public void start(int port, int size) throws IOException {
-		AsynchronousServerSocketChannel channel;
-		try(ServerSocketChannel server = ServerSocketChannel.open()){
-			server.bind(new InetSocketAddress(port));
-			SocketChannel client = server.accept();
-			System.out.println("Connection Set:  " + client.getRemoteAddress());
-			ByteBuffer buffer = ByteBuffer.allocate(size);
-			while (client.read(buffer) > 0) {
-				System.out.println(buffer.asCharBuffer().toString());
-				// another way with more control on encoding
-				//String s = StandardCharsets.UTF_8.decode(byteBuffer).toString();
-				buffer.clear();
-			}
-		} 
+	private final SocketAddress socket;
+	
+	public Server(SocketAddress socket) {
+		this.socket = socket;
 	}
 	
-	public void start(int port) throws IOException {
-		this.start(port, 10_000);
+	// TODO Итак, внутренную обработку тредов для асинхронных операций выполняет AsynchronousChannelGroup
+	// Исходя из javadoc-а с ней связан thread pool, который и исполняет операции.
+	// Если канал при создании не указывает, с какой группой его ассоциировать, то он ассоциируется
+	// с существующей в JVM "группой по умолчанию". Важно, что все потоки этой группы считаются как демоны,
+	// т.е. их убьют, как только умрёт последний не-демон поток JVM.
+	// Вывод - нужно создавать свою группу и работать через неё. Нужно читать примеры на AsynchronousChannelGroup
+	
+	// TODO Из javadoc-а на accept() не ясно, как будет вызвана операция - блокирующися/синхронным вызовом или нет.
+	// Нужно поставить эксперимент.
+	public void start() throws IOException {
+		AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open();
+		server.bind(socket);
+		server.accept(attachment, handler);
+		
+		Future<AsynchronousSocketChannel> future = server.accept();
+		// TODO handle TimeoutException at least
+		try {
+			AsynchronousSocketChannel client = future.get(10, TimeUnit.SECONDS);
+//			while(true) {
+				ByteBuffer buffer = ByteBuffer.allocate(this.size);
+				Future<Integer> readResult = client.read(buffer);
+				readResult.get(5, TimeUnit.SECONDS);
+				buffer.flip();
+				Future<Integer> writeResult = client.write(buffer);
+				writeResult.get(5, TimeUnit.SECONDS);
+				buffer.clear();
+//			}
+			client.close();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		} catch (TimeoutException e) {
+			e.printStackTrace();
+		}
+		server.close();	
 	}
+	
 }
