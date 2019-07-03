@@ -20,7 +20,8 @@ public class Server {
 			AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open(group);
 			server.bind(socket);
 			while(true) {
-				server.accept(server, new AcceptCompletionHandler());
+// FIXME multiple calls to accept.
+				server.accept(server, new AcceptCompletionHandler(500));
 				if(Thread.currentThread().isInterrupted()) {
 					group.shutdownNow();
 					break;
