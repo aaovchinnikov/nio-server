@@ -1,4 +1,4 @@
-package main;
+package handlers;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,7 +36,7 @@ public class ReadCompletionHandler implements CompletionHandler<Integer, Object>
 			if(position != -1) {
 				String message = builder.substring(0, position);
 				ByteBuffer writeBuffer = ByteBuffer.wrap(message.getBytes());
-				this.client.write(writeBuffer, 0, TimeUnit.SECONDS, null, new WriteCompletionHandler());
+				this.client.write(writeBuffer, 0, TimeUnit.SECONDS, this.client, new WriteCompletionHandler());
 			} else {
 				// TODO хорошо бы передавать таймаут тоже извне
 				this.client.read(this.buffer, 0, TimeUnit.SECONDS, null, this);				

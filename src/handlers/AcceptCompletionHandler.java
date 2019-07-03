@@ -1,4 +1,4 @@
-package main;
+package handlers;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousServerSocketChannel;
@@ -21,7 +21,7 @@ public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSo
 	@Override
 	public void completed(AsynchronousSocketChannel client,	AsynchronousServerSocketChannel server) {
 		System.out.println("Server: " + Thread.currentThread().getName()+ " accepted connection.");
-		server.accept(server, this);
+		server.accept(server, this); // async call for new connection acceptance and handling with this handler code
 		ByteBuffer buffer = ByteBuffer.allocate(this.size);
         client.read(buffer, 0, TimeUnit.SECONDS, null, new ReadCompletionHandler(buffer, client, new StringBuilder()));
 	}
