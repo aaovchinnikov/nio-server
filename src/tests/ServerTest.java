@@ -1,7 +1,6 @@
 package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -94,10 +93,11 @@ class ServerTest {
 		SocketChannel client = SocketChannel.open(socket);
 		Thread.sleep(500); // time for socket allocation
 		Thread.sleep(3_000);
-		int count = client.write(ByteBuffer.wrap("Hello World!".getBytes()));
+		int count = client.write(ByteBuffer.wrap("Hello World!exit".getBytes()));
 		System.out.println("Test: bytes written to socket: " + count);
-		// TODO допиши тест, добавив чтение из сокета. Оно должно вернуть -1, т.к. сокет закрыт.
-		assertFalse(client.isOpen());
+		count = client.read(ByteBuffer.allocate(1000));
+		System.out.println("Test: bytes read from socket: " + count);
+		assertEquals(-1, count);
 		thread.interrupt();
 		thread.join();
 	}

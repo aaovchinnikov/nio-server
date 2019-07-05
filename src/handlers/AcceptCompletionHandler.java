@@ -28,8 +28,6 @@ public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSo
 		this.writeTimeUnit = writeTimeUnit;
 	}	
 	
-	
-	
 	@Override
 	public void completed(AsynchronousSocketChannel client,	AsynchronousServerSocketChannel server) {
 		System.out.println("Server: " + Thread.currentThread().getName()+ ": accepted connection.");
@@ -44,7 +42,7 @@ public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSo
 	@Override
 	public void failed(Throwable exc, AsynchronousServerSocketChannel server) {
 		if (exc instanceof AsynchronousCloseException) {
-			System.out.println("Server: " + Thread.currentThread().getName()+ ": handler stopped due server socket shutdown");
+			System.out.println("Server: " + Thread.currentThread().getName()+ ": accept handler stopped due server socket shutdown");
 		} else {
 			System.out.println("Server: " + Thread.currentThread().getName()+ ": failed accepting connection.");
 			exc.printStackTrace();			

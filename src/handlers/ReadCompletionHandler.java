@@ -51,7 +51,6 @@ public class ReadCompletionHandler implements CompletionHandler<Integer, Object>
 				ByteBuffer writeBuffer = ByteBuffer.wrap(message.getBytes());
 				this.client.write(writeBuffer, writeTimeout, writeTimeUnit, this.client, new WriteCompletionHandler());
 			} else {
-				// TODO хорошо бы передавать таймаут тоже извне
 				this.client.read(this.buffer, readTimeout, readTimeUnit, null, this);				
 			}
 		}
@@ -60,8 +59,8 @@ public class ReadCompletionHandler implements CompletionHandler<Integer, Object>
 	@Override
 	public void failed(Throwable exc, Object readInfo) {
 		if (exc instanceof AsynchronousCloseException) {
-			System.out.println("Server: " + Thread.currentThread().getName()+ ": handler stopped due server socket shutdown");
-		} if (exc instanceof InterruptedByTimeoutException) {
+			System.out.println("Server: " + Thread.currentThread().getName()+ ": read handler stopped due server socket shutdown");
+		} else if (exc instanceof InterruptedByTimeoutException) {
 			System.out.println("Server: " + Thread.currentThread().getName()+ ": connection closed due read timeout.");
 			try {
 				this.client.close();
