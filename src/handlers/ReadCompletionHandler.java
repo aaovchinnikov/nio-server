@@ -2,6 +2,7 @@ package handlers;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
@@ -46,8 +47,12 @@ public class ReadCompletionHandler implements CompletionHandler<Integer, Object>
 
 	@Override
 	public void failed(Throwable exc, Object readInfo) {
-		System.out.println("Server: " + Thread.currentThread().getName()+ " failed reading from connection.");
-		exc.printStackTrace();		
+		if (exc instanceof AsynchronousCloseException) {
+			System.out.println("Server: " + Thread.currentThread().getName()+ ": handler stopped due server socket shutdown");
+		} else {
+			System.out.println("Server: " + Thread.currentThread().getName()+ ": failed reading from connection.");
+			exc.printStackTrace();
+		}
 	}
 
 }

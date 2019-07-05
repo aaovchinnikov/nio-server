@@ -1,6 +1,7 @@
 package handlers;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -20,7 +21,7 @@ public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSo
 	
 	@Override
 	public void completed(AsynchronousSocketChannel client,	AsynchronousServerSocketChannel server) {
-		System.out.println("Server: " + Thread.currentThread().getName()+ " accepted connection.");
+		System.out.println("Server: " + Thread.currentThread().getName()+ ": accepted connection.");
 		server.accept(server, this); // async call for new connection acceptance and handling with this handler code
 		ByteBuffer buffer = ByteBuffer.allocate(this.size);
         client.read(buffer, 0, TimeUnit.SECONDS, null, new ReadCompletionHandler(buffer, client, new StringBuilder()));
@@ -28,7 +29,11 @@ public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSo
 
 	@Override
 	public void failed(Throwable exc, AsynchronousServerSocketChannel server) {
-		System.out.println("Server: " + Thread.currentThread().getName()+ " failed accepting connection.");
-		exc.printStackTrace();
+		if (exc instanceof AsynchronousCloseException) {
+			System.out.println("Server: " + Thread.currentThread().getName()+ ": handler stopped due server socket shutdown");
+		} else {
+			System.out.println("Server: " + Thread.currentThread().getName()+ ": failed accepting connection.");
+			exc.printStackTrace();			
+		}
 	}
 }
