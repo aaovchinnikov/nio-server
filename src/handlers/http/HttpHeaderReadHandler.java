@@ -24,7 +24,7 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 		}
 	}
 	
-	private void processHeader() {
+	private void processHeader(String header) {
 		//TODO parse and process HTTP header
 		
 	}
@@ -38,8 +38,10 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 			this.builder.append(StandardCharsets.US_ASCII.decode(buffer));
 			buffer.clear();
 			int position = this.builder.indexOf("\r\n\r\n");
+			final String header = this.builder.substring(0, position);
+			this.builder.delete(0, position + 2);
 			if(position != -1) {
-				processHeader();
+				processHeader(header);
 			} else {
 				this.client.read(buffer, buffer, this);
 			}
