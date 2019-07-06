@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuffer> {
 	private final AsynchronousSocketChannel client;
@@ -26,7 +28,18 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 	
 	private void processHeader(String header) {
 		//TODO parse and process HTTP header
-		
+		Map<String,String> pairs = new HashMap<String, String>();
+		String[] lines = header.split("\r\n");
+		String[] parts = lines[0].split(" ");
+		pairs.put("X-Method", parts[0]);
+		pairs.put("X-Query", parts[1]);
+		pairs.put("X-Protocol", parts[2]);
+		for(int idx = 1; idx < lines.length; idx++) {
+			parts = lines[idx].split(": ");
+			pairs.put(parts[0].trim(),parts[1].trim());
+		}
+
+
 	}
 	
 	@Override
