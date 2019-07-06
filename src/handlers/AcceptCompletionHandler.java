@@ -39,7 +39,7 @@ public class AcceptCompletionHandler implements CompletionHandler<AsynchronousSo
 			logger.info("Server: {}: accepted connection from {}.", Thread.currentThread().getName(), client.getRemoteAddress());
 		server.accept(server, this); // async call for new connection acceptance and handling with this handler code
 		ByteBuffer buffer = ByteBuffer.allocate(this.size);
-        client.read(buffer, this.readTimeout, this.readTimeUnit, null, 
+        client.read(buffer, this.readTimeout, this.readTimeUnit, buffer, 
         		new ReadCompletionHandler(buffer, client, new StringBuilder(), 
         				this.readTimeout, this.readTimeUnit, 
         				this.writeTimeout, this.writeTimeUnit));

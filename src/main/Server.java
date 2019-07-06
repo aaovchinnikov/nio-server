@@ -13,7 +13,9 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import handlers.AcceptCompletionHandler;
+import handlers.accept.ReadingWithTimeoutLoggingAcceptHandler;
+import handlers.closing.CloseAfterWriteHandlerFactory;
+import handlers.read.EchoingReadHandlerFactory;
 
 public class Server {
 	private final SocketAddress socket;
@@ -55,7 +57,12 @@ public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		Logger logger = LoggerFactory.getLogger(Server.class);
 		CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel> acceptHandler = 
-				new AcceptCompletionHandler(500, 0, TimeUnit.SECONDS, 0, TimeUnit.SECONDS, logger);
+				new ReadingWithTimeoutLoggingAcceptHandler(500, 
+						new EchoingReadHandlerFactory(logger, 5, TimeUnit.SECONDS, 
+								new CloseAfterWriteHandlerFactory(logger),
+								5, TimeUnit.SECONDS),
+						logger, 
+						2, TimeUnit.SECONDS);
 		Server server = new Server(new InetSocketAddress(8080), logger, acceptHandler);
 		logger.info("Starting the server...");
 		server.start();
