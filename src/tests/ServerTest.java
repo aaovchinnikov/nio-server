@@ -11,11 +11,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import handlers.AcceptCompletionHandler;
 import main.Server;
 
 class ServerTest {
-
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
 	private Thread createAndStartServer(SocketAddress socket, int size) throws InterruptedException {
 		return createAndStartServer(socket, size, 0, TimeUnit.SECONDS, 0, TimeUnit.SECONDS);
 	}
@@ -25,7 +29,7 @@ class ServerTest {
 		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				Server server = new Server(socket, size, readTimeout, readTimeUnit, writeTimeout, writeTimeUnit);
+				Server server = new Server(socket, logger, new AcceptCompletionHandler(size, readTimeout, readTimeUnit, writeTimeout, writeTimeUnit, logger));
 				try {
 					server.start();
 				} catch (IOException e) {
@@ -40,7 +44,7 @@ class ServerTest {
 	
 	@Test
 	synchronized void serverStops() throws InterruptedException {
-		System.out.println("\n---serverStops test invoked---");
+		this.logger.info("---serverStops test invoked---");
 		final int port = 8080;
 		final SocketAddress socket = new InetSocketAddress(port);
 		Thread thread = createAndStartServer(socket, 1_000);
@@ -50,7 +54,7 @@ class ServerTest {
 	
 	@Test
 	synchronized void tcpConnect() throws IOException, InterruptedException {
-		System.out.println("\n---tcpConnect test invoked---");
+		this.logger.info("---tcpConnect test invoked---");
 		final int port = 8080;
 		final SocketAddress socket = new InetSocketAddress(port);
 		final Thread thread = createAndStartServer(socket, 1_000);
@@ -63,7 +67,7 @@ class ServerTest {
 
 	@Test
 	synchronized void sendMessage() throws IOException, InterruptedException {
-		System.out.println("\n---sendMessage test invoked---");
+		this.logger.info("---sendMessage test invoked---");
 		final int port = 8080;
 		final SocketAddress socket = new InetSocketAddress(port);
 		final Thread thread = createAndStartServer(socket, 1_000);
@@ -86,7 +90,7 @@ class ServerTest {
 
 	@Test
 	synchronized void readTimeout() throws IOException, InterruptedException {
-		System.out.println("\n---readTimeout test invoked---");
+		this.logger.info("---readTimeout test invoked---");
 		final int port = 8080;
 		final SocketAddress socket = new InetSocketAddress(port);
 		final Thread thread = createAndStartServer(socket, 1_000, 500, TimeUnit.MILLISECONDS, 0, TimeUnit.SECONDS);
@@ -94,9 +98,9 @@ class ServerTest {
 		Thread.sleep(500); // time for socket allocation
 		Thread.sleep(3_000);
 		int count = client.write(ByteBuffer.wrap("Hello World!exit".getBytes()));
-		System.out.println("Test: bytes written to socket: " + count);
+		this.logger.info("Test: bytes written to socket: {}", count);
 		count = client.read(ByteBuffer.allocate(1000));
-		System.out.println("Test: bytes read from socket: " + count);
+		this.logger.info("Test: bytes read from socket: {}", count); 
 		assertEquals(-1, count);
 		thread.interrupt();
 		thread.join();

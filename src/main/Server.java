@@ -5,59 +5,59 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import handlers.AcceptCompletionHandler;
 
 public class Server {
 	private final SocketAddress socket;
-	/** Size of ByteBuffers allocated for connections */
-	private final int size;
-	private final long readTimeout;
-	private final TimeUnit readTimeUnit;
-	private final long writeTimeout;
-	private final TimeUnit writeTimeUnit;
-
-	public Server(SocketAddress socket, int size, long readTimeout,
-			TimeUnit readTimeUnit, long writeTimeout, TimeUnit writeTimeUnit) {
-		this.socket = socket;
-		this.size = size;
-		this.readTimeout = readTimeout;
-		this.readTimeUnit = readTimeUnit;
-		this.writeTimeout = writeTimeout;
-		this.writeTimeUnit = writeTimeUnit;
-	}
+	private final Logger logger;
+	private final CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel> acceptHandler;
 
 	/**
-	 * Constructs Server instance with infinite read and write timeouts
+	 * Supposes {@link #acceptHandler} should be reused if multiple connections would be served
 	 * @param socket
-	 * @param size
+	 * @param logger
+	 * @param acceptHandler
 	 */
-	public Server(SocketAddress socket, int size) {
-		this(socket,size, 0, TimeUnit.SECONDS, 0, TimeUnit.SECONDS);
+	public Server(SocketAddress socket, Logger logger, 
+			CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel> acceptHandler) {
+		this.socket = socket;
+		this.logger = logger;
+		this.acceptHandler = acceptHandler;
 	}
 	
 	public void start() throws IOException {
 		AsynchronousChannelGroup group = AsynchronousChannelGroup.withCachedThreadPool(Executors.newCachedThreadPool(), 2);
 		try (AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open(group)){
 			server.bind(socket);
-			server.accept(server, new AcceptCompletionHandler(this.size,this.readTimeout, this.readTimeUnit, this.writeTimeout, this.writeTimeUnit));
+			server.accept(server, this.acceptHandler);
+			this.logger.info("Server started");
 			synchronized (this) { // just wait as documented in javadoc for wait()
 				while (true) {
 					this.wait();
-					System.out.println("Server: " + Thread.currentThread().getName() + ": main thread woke up");
+					this.logger.debug("Server: {}: main thread woke up", Thread.currentThread().getName());
 				}
 			}
 		} catch (InterruptedException e) {
-			System.out.println("Server: " + Thread.currentThread().getName() + ": main thread interrupted");
+			this.logger.info("Server: {}: main thread interrupted", Thread.currentThread().getName());
 		} finally {
 			group.shutdownNow();
 		}
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		Server server = new Server(new InetSocketAddress(8080), 500);
+		Logger logger = LoggerFactory.getLogger(Server.class);
+		CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel> acceptHandler = 
+				new AcceptCompletionHandler(500, 0, TimeUnit.SECONDS, 0, TimeUnit.SECONDS, logger);
+		Server server = new Server(new InetSocketAddress(8080), logger, acceptHandler);
+		logger.info("Starting the server...");
 		server.start();
 	}
 }
