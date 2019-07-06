@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import handlers.AcceptCompletionHandler;
+import handlers.accept.ReadingWithTimeoutLoggingAcceptHandler;
+import handlers.closing.CloseAfterWriteHandlerFactory;
+import handlers.read.EchoingReadHandlerFactory;
 import main.Server;
 
 class ServerTest {
@@ -29,7 +31,12 @@ class ServerTest {
 		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				Server server = new Server(socket, logger, new AcceptCompletionHandler(size, readTimeout, readTimeUnit, writeTimeout, writeTimeUnit, logger));
+				Server server = new Server(socket, logger,
+						new ReadingWithTimeoutLoggingAcceptHandler(size,
+								new EchoingReadHandlerFactory(logger, readTimeout, readTimeUnit,
+										new CloseAfterWriteHandlerFactory(logger),
+										writeTimeout, writeTimeUnit),
+								logger, readTimeout, readTimeUnit));
 				try {
 					server.start();
 				} catch (IOException e) {

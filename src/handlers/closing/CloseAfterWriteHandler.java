@@ -24,9 +24,9 @@ public class CloseAfterWriteHandler
 	public void completed(Integer count, ByteBuffer buffer) {
 		try {
 			this.logger.info("Server: {}: {} bytes written to socket", Thread.currentThread().getName(), count);
-			SocketAddress socket = client.getRemoteAddress();
-			this.client.close();
-			this.logger.info("Connection with {} closed", socket);
+				SocketAddress socket = client.getRemoteAddress();
+				this.client.close();
+				this.logger.info("Connection with {} closed", socket);
 		} catch (IOException e) {
 			this.logger.error("Exception on connection close", e);
 		}
