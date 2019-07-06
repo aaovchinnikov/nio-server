@@ -8,14 +8,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import outputs.StringBuilderOutput;
+import resources.Resource;
+
 public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuffer> {
 	private final AsynchronousSocketChannel client;
 	private final StringBuilder builder;
+	private final Resource resource;
 
 	public HttpHeaderReadHandler(AsynchronousSocketChannel client,
-			StringBuilder builder) {
+			StringBuilder builder, Resource resource) {
 		this.client = client;
 		this.builder = builder;
+		this.resource = resource;
 	}
 
 	private void closeSocket() {
@@ -27,7 +32,6 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 	}
 	
 	private void processHeader(String header) {
-		//TODO parse and process HTTP header
 		Map<String,String> pairs = new HashMap<String, String>();
 		String[] lines = header.split("\r\n");
 		String[] parts = lines[0].split(" ");
@@ -38,8 +42,13 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 			parts = lines[idx].split(": ");
 			pairs.put(parts[0].trim(),parts[1].trim());
 		}
-
-
+		Resource res = this.resource;
+		for(Map.Entry<String, String> pair: pairs.entrySet()) {
+			res = res.refine(pair.getKey(), pair.getValue());
+		}
+		final StringBuilder builder = new StringBuilder();
+		res.print(new StringBuilderOutput(builder));
+		this.client.write(ByteBuffer.wrap(builder.toString().getBytes()), null, new NoOpHandler());
 	}
 	
 	@Override
