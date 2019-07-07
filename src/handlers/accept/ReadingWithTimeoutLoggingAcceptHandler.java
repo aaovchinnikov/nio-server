@@ -47,7 +47,7 @@ public class ReadingWithTimeoutLoggingAcceptHandler implements CompletionHandler
 			logger.info("Server: {}: accepted connection from {}.", Thread.currentThread().getName(), client.getRemoteAddress());
 			server.accept(server, this); // async call for new connection acceptance and handling with this handler code
 			ByteBuffer buffer = ByteBuffer.allocate(this.size);
-	        client.read(buffer, this.readTimeout, this.readTimeUnit, buffer, factory.createHandler(client)); 
+	        client.read(buffer, this.readTimeout, this.readTimeUnit, buffer, this.factory.createHandler(client)); 
  		} catch (IOException e) {
 			logger.error("Server: can't get client-socket remote address", e);
 		}

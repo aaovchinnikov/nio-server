@@ -11,16 +11,25 @@ import java.util.Map;
 import outputs.StringBuilderOutput;
 import resources.Resource;
 
+/**
+ * 
+ * @author sansey
+ *
+ */
 public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuffer> {
 	private final AsynchronousSocketChannel client;
 	private final StringBuilder builder;
 	private final Resource resource;
-
+	/** {@link Operation} to handle */
+	private Operation operation;
+	private ByteBuffer readBuffer = null;
+	
 	public HttpHeaderReadHandler(AsynchronousSocketChannel client,
-			StringBuilder builder, Resource resource) {
+			StringBuilder builder, Resource resource, Operation operation) {
 		this.client = client;
 		this.builder = builder;
 		this.resource = resource;
+		this.operation = operation;
 	}
 
 	private void closeSocket() {
@@ -48,11 +57,12 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 		}
 		final StringBuilder builder = new StringBuilder();
 		res.print(new StringBuilderOutput(builder));
-		this.client.write(ByteBuffer.wrap(builder.toString().getBytes()), null, new NoOpHandler());
+		ByteBuffer writeBuffer = ByteBuffer.wrap(builder.toString().getBytes());
+		this.operation = Operation.WRITE;
+		this.client.write(writeBuffer, writeBuffer, this);
 	}
 	
-	@Override
-	public void completed(Integer count, ByteBuffer buffer) {
+	private void handleRead(Integer count, ByteBuffer buffer) {
 		if (count == -1) {
 			closeSocket();
 		} else {
@@ -68,6 +78,31 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 				this.client.read(buffer, buffer, this);
 			}
 		}	
+	}
+	
+	private void handleWrite(Integer count, ByteBuffer buffer) {
+		if(buffer.hasRemaining()) {
+			buffer.compact();
+			buffer.flip();
+			this.client.write(buffer, buffer, this);
+		} else {
+			this.operation = Operation.READ;
+			this.client.read(this.readBuffer, this.readBuffer, this); 
+		}
+	}
+	
+	@Override
+	public void completed(Integer count, ByteBuffer buffer) {
+		if (this.operation.isRead()) {
+			if (this.readBuffer == null) {
+				this.readBuffer = buffer;
+			}
+			handleRead(count, buffer);
+		} else if(this.operation.isWrite()) {
+			handleWrite(count, buffer);
+		} else {
+			throw new IllegalStateException("Operation is not READ or WRITE");
+		}
 	}
 
 	
