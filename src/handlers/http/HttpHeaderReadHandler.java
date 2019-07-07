@@ -41,6 +41,7 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 	}
 	
 	private void processHeader(String header) {
+		System.out.println("Header: \n"+ header);
 		Map<String,String> pairs = new HashMap<String, String>();
 		String[] lines = header.split("\r\n");
 		String[] parts = lines[0].split(" ");
@@ -71,7 +72,7 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 			buffer.clear();
 			int position = this.builder.indexOf("\r\n\r\n");
 			final String header = this.builder.substring(0, position);
-			this.builder.delete(0, position + 2);
+			this.builder.delete(0, position + 4); // "\r\n\r\n" aka CRLFCRLF is four symbols, not 2
 			if(position != -1) {
 				processHeader(header);
 			} else {
@@ -104,7 +105,6 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 			throw new IllegalStateException("Operation is not READ or WRITE");
 		}
 	}
-
 	
 	@Override
 	public void failed(Throwable exc, ByteBuffer buffer) {
