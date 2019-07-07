@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import outputs.StringBuilderOutput;
@@ -45,7 +45,7 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 	}
 	
 	private void processHeader(String header) {
-		Map<String,String> pairs = new HashMap<String, String>();
+		Map<String,String> pairs = new LinkedHashMap<String, String>();
 		try {
 			String[] lines = header.split("\r\n");
 			String[] parts = lines[0].split(" ");
