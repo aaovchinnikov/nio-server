@@ -9,10 +9,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import outputs.StringBuilderOutput;
+import resources.BadRequestResource;
 import resources.Resource;
 
 /**
- * 
+ * Handler performs action after read and write operations with socket.
+ * Private field {@link #operation} is used to distinguish the operation with socket.
+ * This field should be set before {@link AsynchronousSocketChannel#read} or
+ * {@link AsynchronousSocketChannel#write} is called to indicate type of operation.
  * @author sansey
  *
  */
@@ -41,16 +45,24 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 	}
 	
 	private void processHeader(String header) {
-		System.out.println("Header: \n"+ header);
 		Map<String,String> pairs = new HashMap<String, String>();
-		String[] lines = header.split("\r\n");
-		String[] parts = lines[0].split(" ");
-		pairs.put("X-Method", parts[0]);
-		pairs.put("X-Query", parts[1]);
-		pairs.put("X-Protocol", parts[2]);
-		for(int idx = 1; idx < lines.length; idx++) {
-			parts = lines[idx].split(": ");
-			pairs.put(parts[0].trim(),parts[1].trim());
+		try {
+			String[] lines = header.split("\r\n");
+			String[] parts = lines[0].split(" ");
+			pairs.put("X-Method", parts[0]);
+			pairs.put("X-Query", parts[1]);
+			pairs.put("X-Protocol", parts[2]);
+			for(int idx = 1; idx < lines.length; idx++) {
+				parts = lines[idx].split(": ");
+				pairs.put(parts[0].trim(),parts[1].trim());
+			}
+		} catch (ArrayIndexOutOfBoundsException e){
+			Resource res = new BadRequestResource();
+			res.print(new StringBuilderOutput(builder));
+			ByteBuffer writeBuffer = ByteBuffer.wrap(builder.toString().getBytes());
+			this.operation = Operation.WRITE_AND_CLOSE;
+			this.client.write(writeBuffer, writeBuffer, this);
+			return;
 		}
 		Resource res = this.resource;
 		for(Map.Entry<String, String> pair: pairs.entrySet()) {
@@ -59,7 +71,11 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 		final StringBuilder builder = new StringBuilder();
 		res.print(new StringBuilderOutput(builder));
 		ByteBuffer writeBuffer = ByteBuffer.wrap(builder.toString().getBytes());
-		this.operation = Operation.WRITE;
+		if (res.shouldCloseConnection()) {
+			this.operation = Operation.WRITE_AND_CLOSE;			
+		} else {
+			this.operation = Operation.WRITE;			
+		}
 		this.client.write(writeBuffer, writeBuffer, this);
 	}
 	
@@ -71,9 +87,9 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 			this.builder.append(StandardCharsets.US_ASCII.decode(buffer));
 			buffer.clear();
 			int position = this.builder.indexOf("\r\n\r\n");
-			final String header = this.builder.substring(0, position);
-			this.builder.delete(0, position + 4); // "\r\n\r\n" aka CRLFCRLF is four symbols, not 2
 			if(position != -1) {
+				final String header = this.builder.substring(0, position);
+				this.builder.delete(0, position + 4); // "\r\n\r\n" aka CRLFCRLF is four symbols, not 2
 				processHeader(header);
 			} else {
 				this.client.read(buffer, buffer, this);
@@ -86,6 +102,8 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 			buffer.compact();
 			buffer.flip();
 			this.client.write(buffer, buffer, this);
+		} else if (this.operation.isWriteAndClose()){
+			closeSocket();
 		} else {
 			this.operation = Operation.READ;
 			this.client.read(this.readBuffer, this.readBuffer, this); 
@@ -99,7 +117,7 @@ public class HttpHeaderReadHandler implements CompletionHandler<Integer, ByteBuf
 				this.readBuffer = buffer;
 			}
 			handleRead(count, buffer);
-		} else if(this.operation.isWrite()) {
+		} else if(this.operation.isWrite() || this.operation.isWriteAndClose()) {
 			handleWrite(count, buffer);
 		} else {
 			throw new IllegalStateException("Operation is not READ or WRITE");

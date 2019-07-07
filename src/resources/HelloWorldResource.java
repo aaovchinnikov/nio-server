@@ -19,4 +19,9 @@ public final class HelloWorldResource implements Resource {
 		output.print("Content-Length", String.valueOf(BODY.length()));
 		output.print("X-Body", BODY);
 	}
+	
+	@Override
+	public boolean shouldCloseConnection() {
+		return false;
+	}
 }

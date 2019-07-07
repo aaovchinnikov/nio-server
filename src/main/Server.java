@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import handlers.accept.ReadingWithTimeoutLoggingAcceptHandler;
 import handlers.http.HttpHeaderReadHandlerFactory;
-import resources.HelloWorldResource;
+import resources.DispatchingResource;
 
 public class Server {
 	private final SocketAddress socket;
@@ -58,7 +58,7 @@ public class Server {
 		Logger logger = LoggerFactory.getLogger(Server.class);
 		CompletionHandler<AsynchronousSocketChannel, AsynchronousServerSocketChannel> acceptHandler = 
 				new ReadingWithTimeoutLoggingAcceptHandler(500, 
-						new HttpHeaderReadHandlerFactory(new HelloWorldResource()),
+						new HttpHeaderReadHandlerFactory(new DispatchingResource()),
 						logger, 
 						0, TimeUnit.SECONDS);
 		Server server = new Server(new InetSocketAddress(8080), logger, acceptHandler);
