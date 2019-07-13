@@ -9,6 +9,11 @@ public class DispatchingResource implements Resource {
 	
 	@Override
 	public Resource refine(String name, String value) {
+		if (name.equals("X-Method")) {
+			if (value.equals("POST")) {
+				return new PostResource();
+			}
+		}
 		if (name.equals("X-Query")) {
 			if (value.equals("/")) {
 				return new HelloWorldResource();
